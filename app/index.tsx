@@ -1,236 +1,187 @@
+import { useState } from "react";
 import {
   SafeAreaView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { useRouter } from "expo-router";
 
-export default function HomeScreen() {
+export default function LoginScreen() {
+  const router = useRouter();
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const login = () => {
+    if (!username.trim() || !password.trim()) {
+      return;
+    }
+
+    router.push("/home");
+  };
+
   return (
     <SafeAreaView style={styles.page}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.brand}>Target & Sales</Text>
-          <Text style={styles.subtitle}>نظام المبيعات والتارجت</Text>
-        </View>
-
+      <View style={styles.topArea}>
         <View style={styles.logo}>
           <Text style={styles.logoText}>T&S</Text>
         </View>
+
+        <Text style={styles.title}>Target & Sales</Text>
+
+        <Text style={styles.subtitle}>
+          نظام إدارة المبيعات والتارجت والحضور
+        </Text>
       </View>
 
-      <View style={styles.hero}>
-        <Text style={styles.heroSmall}>التارجت الشهري</Text>
-        <Text style={styles.heroNumber}>3,300</Text>
-        <Text style={styles.heroPoints}>نقطة</Text>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>تسجيل الدخول</Text>
+
+        <Text style={styles.label}>اسم المستخدم</Text>
+
+        <TextInput
+          style={styles.input}
+          value={username}
+          onChangeText={setUsername}
+          placeholder="أدخل اسم المستخدم"
+          placeholderTextColor="#9AA5B4"
+          textAlign="right"
+          autoCapitalize="none"
+        />
+
+        <Text style={styles.label}>كلمة المرور</Text>
+
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="أدخل كلمة المرور"
+          placeholderTextColor="#9AA5B4"
+          secureTextEntry
+          textAlign="right"
+        />
+
+        <TouchableOpacity
+          style={[
+            styles.button,
+            (!username.trim() || !password.trim()) && styles.buttonDisabled,
+          ]}
+          disabled={!username.trim() || !password.trim()}
+          onPress={login}
+        >
+          <Text style={styles.buttonText}>دخول</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.cards}>
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>مبيعات اليوم</Text>
-          <Text style={styles.cardValue}>0</Text>
-        </View>
-
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>نقاط اليوم</Text>
-          <Text style={styles.cardValue}>0</Text>
-        </View>
-      </View>
-
-      <View style={styles.packages}>
-        <Text style={styles.sectionTitle}>نقاط الباقات</Text>
-
-        <View style={styles.packageRow}>
-          <Package name="35" points="5" />
-          <Package name="58" points="10" />
-        </View>
-
-        <View style={styles.packageRow}>
-          <Package name="75" points="10" />
-          <Package name="104" points="12" />
-        </View>
-      </View>
-
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>تسجيل الدخول</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>
-        الإصدار الجديد — نظام مستقل عن تطبيق جنوبية
-      </Text>
+      <Text style={styles.version}>Target & Sales • V1</Text>
     </SafeAreaView>
-  );
-}
-
-function Package({
-  name,
-  points
-}: {
-  name: string;
-  points: string;
-}) {
-  return (
-    <View style={styles.package}>
-      <Text style={styles.packageName}>باقة {name}</Text>
-      <Text style={styles.packagePoints}>{points} نقاط</Text>
-    </View>
   );
 }
 
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: "#F6F8FC",
-    paddingHorizontal: 20,
-    paddingTop: 20
+    backgroundColor: "#F4F7FB",
+    paddingHorizontal: 22,
   },
 
-  header: {
-    flexDirection: "row-reverse",
+  topArea: {
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 28
-  },
-
-  brand: {
-    fontSize: 27,
-    fontWeight: "800",
-    textAlign: "right",
-    color: "#132238"
-  },
-
-  subtitle: {
-    marginTop: 5,
-    fontSize: 14,
-    color: "#7B8798",
-    textAlign: "right"
+    paddingTop: 70,
+    paddingBottom: 35,
   },
 
   logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "#14213D",
+    width: 78,
+    height: 78,
+    borderRadius: 24,
+    backgroundColor: "#17233C",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    marginBottom: 18,
   },
 
   logoText: {
     color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 17
-  },
-
-  hero: {
-    backgroundColor: "#14213D",
-    borderRadius: 26,
-    padding: 25,
-    alignItems: "center",
-    marginBottom: 18
-  },
-
-  heroSmall: {
-    color: "#C8D1DF",
-    fontSize: 15
-  },
-
-  heroNumber: {
-    color: "#FFFFFF",
-    fontSize: 45,
+    fontSize: 24,
     fontWeight: "900",
-    marginTop: 8
   },
 
-  heroPoints: {
-    color: "#65D9B5",
-    fontSize: 16,
-    fontWeight: "700"
+  title: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: "#17233C",
   },
 
-  cards: {
-    flexDirection: "row-reverse",
-    gap: 12
+  subtitle: {
+    color: "#7A8798",
+    marginTop: 8,
+    fontSize: 14,
   },
 
   card: {
-    flex: 1,
     backgroundColor: "#FFFFFF",
-    padding: 18,
-    borderRadius: 20
+    borderRadius: 28,
+    padding: 22,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 14,
+    elevation: 3,
   },
 
-  cardLabel: {
+  cardTitle: {
     textAlign: "right",
-    color: "#7B8798",
-    fontSize: 14
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#17233C",
+    marginBottom: 22,
   },
 
-  cardValue: {
+  label: {
     textAlign: "right",
-    color: "#132238",
-    fontWeight: "800",
-    fontSize: 28,
-    marginTop: 7
+    color: "#526174",
+    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: "700",
   },
 
-  packages: {
-    marginTop: 25
-  },
-
-  sectionTitle: {
-    textAlign: "right",
-    fontSize: 19,
-    fontWeight: "800",
-    color: "#132238",
-    marginBottom: 12
-  },
-
-  packageRow: {
-    flexDirection: "row-reverse",
-    gap: 12,
-    marginBottom: 12
-  },
-
-  package: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 16
-  },
-
-  packageName: {
-    textAlign: "right",
-    color: "#132238",
-    fontWeight: "800",
-    fontSize: 17
-  },
-
-  packagePoints: {
-    textAlign: "right",
-    color: "#11A579",
-    marginTop: 6,
-    fontWeight: "700"
+  input: {
+    backgroundColor: "#F5F7FA",
+    borderWidth: 1,
+    borderColor: "#E7EBF0",
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontSize: 16,
+    color: "#17233C",
+    marginBottom: 18,
   },
 
   button: {
-    marginTop: 25,
-    backgroundColor: "#11A579",
+    backgroundColor: "#16A77A",
+    borderRadius: 17,
     paddingVertical: 17,
-    borderRadius: 18
+    marginTop: 4,
+  },
+
+  buttonDisabled: {
+    opacity: 0.45,
   },
 
   buttonText: {
     textAlign: "center",
     color: "#FFFFFF",
+    fontWeight: "900",
     fontSize: 17,
-    fontWeight: "800"
   },
 
-  footer: {
+  version: {
     textAlign: "center",
-    marginTop: 18,
-    color: "#9AA5B4",
-    fontSize: 12
-  }
+    marginTop: 22,
+    color: "#A1AAB7",
+    fontSize: 12,
+  },
 });
