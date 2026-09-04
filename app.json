@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Target & Sales",
+    "slug": "target-sales",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "targetsales",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "android": {
+      "package": "com.targetsales.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.targetsales.app"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
