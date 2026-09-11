@@ -7,9 +7,14 @@
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
+    "icon": "./assets/icon.png",
     "android": {
       "package": "com.targetsales.app",
       "versionCode": 2,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
@@ -19,6 +24,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.targetsales.app",
+      "icon": "./assets/icon.png",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "يستخدم الموقع للتحقق من بداية ونهاية الشفت في الموقع المعتمد."
       }
