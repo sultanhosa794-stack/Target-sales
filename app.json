@@ -8,6 +8,11 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "icon": "./assets/icon.png",
+    "extra": {
+      "eas": {
+        "projectId": "3d8e668e-2610-464e-a44b-ed642fca82c3"
+      }
+    },
     "android": {
       "package": "com.targetsales.app",
       "versionCode": 3,
