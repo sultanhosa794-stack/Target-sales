@@ -10,7 +10,12 @@
     "android": {
       "package": "com.targetsales.app",
       "versionCode": 2,
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "POST_NOTIFICATIONS",
+        "REQUEST_INSTALL_PACKAGES"
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.targetsales.app",
@@ -25,6 +30,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "السماح لتطبيق Target & Sales باستخدام موقعك للتحقق من بداية ونهاية الشفت."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#102847",
+          "defaultChannel": "target-sales-alerts"
         }
       ]
     ]
