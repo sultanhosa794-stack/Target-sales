@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ensureSession, getStoredProfile, login } from "../lib/backend";
+import { prepareNotifications } from "../lib/notifications";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -26,6 +28,7 @@ export default function LoginScreen() {
         const profile = await getStoredProfile();
         if (profile) {
           await ensureSession();
+          try { await prepareNotifications(); } catch {}
           if (mounted) router.replace("/home");
           return;
         }
@@ -34,9 +37,7 @@ export default function LoginScreen() {
       }
       if (mounted) setChecking(false);
     })();
-    return () => {
-      mounted = false;
-    };
+    return () => { mounted = false; };
   }, [router]);
 
   const submit = async () => {
@@ -45,6 +46,7 @@ export default function LoginScreen() {
     setError("");
     try {
       await login(username, password);
+      try { await prepareNotifications(); } catch {}
       router.replace("/home");
     } catch (e) {
       setError(e instanceof Error ? e.message : "تعذر تسجيل الدخول");
@@ -65,8 +67,11 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={styles.page}>
       <View style={styles.topArea}>
-        <View style={styles.logo}><Text style={styles.logoText}>T&S</Text></View>
+        <View style={styles.logoWrap}>
+          <Image source={require("../assets/icon.png")} style={styles.logoImage} resizeMode="contain" />
+        </View>
         <Text style={styles.title}>Target & Sales</Text>
+        <Text style={styles.brand}>الوسام • الجنوبية</Text>
         <Text style={styles.subtitle}>المبيعات • التارجت • الحضور</Text>
       </View>
 
@@ -104,7 +109,7 @@ export default function LoginScreen() {
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>دخول</Text>}
         </TouchableOpacity>
       </View>
-      <Text style={styles.version}>Target & Sales • V1.1</Text>
+      <Text style={styles.version}>Target & Sales • v1.1.1</Text>
     </SafeAreaView>
   );
 }
@@ -113,11 +118,12 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#F4F7FB", paddingHorizontal: 22 },
   center: { alignItems: "center", justifyContent: "center" },
   checking: { marginTop: 12, color: "#7A8798" },
-  topArea: { alignItems: "center", paddingTop: 70, paddingBottom: 35 },
-  logo: { width: 78, height: 78, borderRadius: 24, backgroundColor: "#17233C", alignItems: "center", justifyContent: "center", marginBottom: 18 },
-  logoText: { color: "#FFFFFF", fontSize: 24, fontWeight: "900" },
-  title: { fontSize: 30, fontWeight: "900", color: "#17233C" },
-  subtitle: { color: "#7A8798", marginTop: 8, fontSize: 14 },
+  topArea: { alignItems: "center", paddingTop: 48, paddingBottom: 28 },
+  logoWrap: { width: 104, height: 104, borderRadius: 30, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, elevation: 4 },
+  logoImage: { width: 94, height: 94, borderRadius: 24 },
+  title: { fontSize: 29, fontWeight: "900", color: "#102847" },
+  brand: { color: "#102847", marginTop: 6, fontSize: 16, fontWeight: "900" },
+  subtitle: { color: "#7A8798", marginTop: 6, fontSize: 13 },
   card: { backgroundColor: "#FFFFFF", borderRadius: 28, padding: 22, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 14, elevation: 3 },
   cardTitle: { textAlign: "right", fontSize: 22, fontWeight: "900", color: "#17233C", marginBottom: 22 },
   label: { textAlign: "right", color: "#526174", marginBottom: 8, fontSize: 14, fontWeight: "700" },
