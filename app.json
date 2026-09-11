@@ -2,19 +2,30 @@
   "expo": {
     "name": "Target & Sales",
     "slug": "target-sales",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "android": {
-      "package": "com.targetsales.app"
+      "package": "com.targetsales.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "ios": {
-      "bundleIdentifier": "com.targetsales.app"
+      "bundleIdentifier": "com.targetsales.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "يستخدم الموقع للتحقق من بداية ونهاية الشفت في الموقع المعتمد."
+      }
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "السماح لتطبيق Target & Sales باستخدام موقعك للتحقق من بداية ونهاية الشفت."
+        }
+      ]
     ]
   }
 }
