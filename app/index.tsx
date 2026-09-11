@@ -1,187 +1,43 @@
-import { useState } from "react";
-import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { useRouter } from "expo-router";
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { signInWithUsername, currentProfile } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
-export default function LoginScreen() {
+export default function Login() {
   const router = useRouter();
+  const [username,setUsername]=useState('');
+  const [password,setPassword]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-
-  const login = () => {
-    if (!username.trim() || !password.trim()) {
-      return;
+  useEffect(()=>{(async()=>{
+    const {data}=await supabase.auth.getSession();
+    if(data.session){
+      try{const p=await currentProfile(); router.replace(p.role==='system_admin'||p.role==='manager'?'/admin':'/home');}catch{}
     }
+  })()},[]);
 
-    router.push("/home");
-  };
+  async function login(){
+    if(!username.trim()||!password)return;
+    setLoading(true);setError('');
+    try{
+      await signInWithUsername(username,password);
+      const p=await currentProfile();
+      router.replace(p.role==='system_admin'||p.role==='manager'?'/admin':'/home');
+    }catch(e:any){setError(e?.message||'تعذر تسجيل الدخول');}
+    finally{setLoading(false)}
+  }
 
-  return (
-    <SafeAreaView style={styles.page}>
-      <View style={styles.topArea}>
-        <View style={styles.logo}>
-          <Text style={styles.logoText}>T&S</Text>
-        </View>
-
-        <Text style={styles.title}>Target & Sales</Text>
-
-        <Text style={styles.subtitle}>
-          نظام إدارة المبيعات والتارجت والحضور
-        </Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>تسجيل الدخول</Text>
-
-        <Text style={styles.label}>اسم المستخدم</Text>
-
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="أدخل اسم المستخدم"
-          placeholderTextColor="#9AA5B4"
-          textAlign="right"
-          autoCapitalize="none"
-        />
-
-        <Text style={styles.label}>كلمة المرور</Text>
-
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="أدخل كلمة المرور"
-          placeholderTextColor="#9AA5B4"
-          secureTextEntry
-          textAlign="right"
-        />
-
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (!username.trim() || !password.trim()) && styles.buttonDisabled,
-          ]}
-          disabled={!username.trim() || !password.trim()}
-          onPress={login}
-        >
-          <Text style={styles.buttonText}>دخول</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.version}>Target & Sales • V1</Text>
-    </SafeAreaView>
-  );
+  return <SafeAreaView style={s.page}>
+    <View style={s.hero}><View style={s.logo}><Text style={s.logoText}>ج</Text></View><Text style={s.title}>مبيعات الجنوبية</Text><Text style={s.sub}>الحضور • الشفت • المبيعات • التارجت</Text></View>
+    <View style={s.card}>
+      <Text style={s.cardTitle}>تسجيل الدخول</Text>
+      <Text style={s.label}>اسم المستخدم</Text><TextInput value={username} onChangeText={setUsername} style={s.input} textAlign="right" autoCapitalize="none" placeholder="اسم المستخدم" />
+      <Text style={s.label}>كلمة المرور</Text><TextInput value={password} onChangeText={setPassword} style={s.input} textAlign="right" secureTextEntry placeholder="كلمة المرور" onSubmitEditing={login}/>
+      {!!error&&<Text style={s.error}>{error}</Text>}
+      <TouchableOpacity style={[s.btn,loading&&{opacity:.6}]} onPress={login} disabled={loading}>{loading?<ActivityIndicator color="#fff"/>:<Text style={s.btnText}>دخول</Text>}</TouchableOpacity>
+    </View><Text style={s.version}>الإصدار الجديد 2.0</Text>
+  </SafeAreaView>
 }
-
-const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: "#F4F7FB",
-    paddingHorizontal: 22,
-  },
-
-  topArea: {
-    alignItems: "center",
-    paddingTop: 70,
-    paddingBottom: 35,
-  },
-
-  logo: {
-    width: 78,
-    height: 78,
-    borderRadius: 24,
-    backgroundColor: "#17233C",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 18,
-  },
-
-  logoText: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "900",
-  },
-
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    color: "#17233C",
-  },
-
-  subtitle: {
-    color: "#7A8798",
-    marginTop: 8,
-    fontSize: 14,
-  },
-
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 28,
-    padding: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 14,
-    elevation: 3,
-  },
-
-  cardTitle: {
-    textAlign: "right",
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#17233C",
-    marginBottom: 22,
-  },
-
-  label: {
-    textAlign: "right",
-    color: "#526174",
-    marginBottom: 8,
-    fontSize: 14,
-    fontWeight: "700",
-  },
-
-  input: {
-    backgroundColor: "#F5F7FA",
-    borderWidth: 1,
-    borderColor: "#E7EBF0",
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    fontSize: 16,
-    color: "#17233C",
-    marginBottom: 18,
-  },
-
-  button: {
-    backgroundColor: "#16A77A",
-    borderRadius: 17,
-    paddingVertical: 17,
-    marginTop: 4,
-  },
-
-  buttonDisabled: {
-    opacity: 0.45,
-  },
-
-  buttonText: {
-    textAlign: "center",
-    color: "#FFFFFF",
-    fontWeight: "900",
-    fontSize: 17,
-  },
-
-  version: {
-    textAlign: "center",
-    marginTop: 22,
-    color: "#A1AAB7",
-    fontSize: 12,
-  },
-});
+const s=StyleSheet.create({page:{flex:1,backgroundColor:'#F4F7FB',paddingHorizontal:22},hero:{alignItems:'center',paddingTop:70,paddingBottom:34},logo:{width:80,height:80,borderRadius:25,backgroundColor:'#17233C',alignItems:'center',justifyContent:'center',marginBottom:16},logoText:{color:'#fff',fontSize:36,fontWeight:'900'},title:{fontSize:29,fontWeight:'900',color:'#17233C'},sub:{marginTop:8,color:'#7B8796'},card:{backgroundColor:'#fff',borderRadius:28,padding:22,elevation:3},cardTitle:{fontSize:22,fontWeight:'900',textAlign:'right',marginBottom:20,color:'#17233C'},label:{textAlign:'right',fontWeight:'700',color:'#556274',marginBottom:7},input:{backgroundColor:'#F6F8FA',borderWidth:1,borderColor:'#E4E9EF',borderRadius:16,padding:15,fontSize:16,marginBottom:15},btn:{backgroundColor:'#159A74',borderRadius:17,paddingVertical:16,alignItems:'center',marginTop:5},btnText:{color:'#fff',fontWeight:'900',fontSize:17},error:{textAlign:'right',color:'#B42318',marginBottom:10},version:{textAlign:'center',color:'#A1AAB7',marginTop:20}});
