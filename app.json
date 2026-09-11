@@ -1,20 +1,22 @@
 {
   "expo": {
-    "name": "Target & Sales",
+    "name": "مبيعات الجنوبية",
     "slug": "target-sales",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "android": {
-      "package": "com.targetsales.app"
+      "package": "com.targetsales.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
     },
     "ios": {
-      "bundleIdentifier": "com.targetsales.app"
+      "bundleIdentifier": "com.targetsales.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "يستخدم التطبيق موقعك للتحقق من بداية الشفت في موقع العمل المعتمد."
+      }
     },
-    "plugins": [
-      "expo-router"
-    ]
+    "plugins": ["expo-router", "expo-secure-store", "expo-location"]
   }
 }
