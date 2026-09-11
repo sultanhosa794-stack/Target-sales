@@ -68,7 +68,7 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.page}>
       <View style={styles.topArea}>
         <View style={styles.logoWrap}>
-          <Image source={require("../assets/icon.png")} style={styles.logoImage} resizeMode="contain" />
+          <Image source={require("../assets/icon.jpg")} style={styles.logoImage} resizeMode="contain" />
         </View>
         <Text style={styles.title}>Target & Sales</Text>
         <Text style={styles.brand}>الوسام • الجنوبية</Text>
@@ -109,7 +109,7 @@ export default function LoginScreen() {
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>دخول</Text>}
         </TouchableOpacity>
       </View>
-      <Text style={styles.version}>Target & Sales • v1.1.1</Text>
+      <Text style={styles.version}>Target & Sales • v1.1.2</Text>
     </SafeAreaView>
   );
 }
