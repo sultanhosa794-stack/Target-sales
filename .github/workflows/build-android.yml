@@ -1,4 +1,4 @@
-name: Build Android Test APK
+name: Build Android Standalone APK
 
 on:
   workflow_dispatch:
@@ -9,34 +9,62 @@ on:
       - "lib/**"
       - "package.json"
       - "app.json"
+      - "eas.json"
       - ".github/workflows/build-android.yml"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 35
+    env:
+      CI: true
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - name: Install dependencies
         run: npm install
-      - name: Generate Android project
-        run: npx expo prebuild --platform android --non-interactive
-      - name: Build debug APK
+
+      - name: TypeScript check
+        run: npm run typecheck
+
+      - name: Validate Expo project
+        run: npx expo config --type public > /dev/null
+
+      - name: Generate clean Android project
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      - name: Build standalone release APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew clean assembleRelease --no-daemon --stacktrace
+
+      - name: Verify APK contains embedded JavaScript bundle
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK"
+          unzip -l "$APK" | tee /tmp/apk-files.txt
+          grep -Eq "(assets/index.android.bundle|assets/.*\.bundle)" /tmp/apk-files.txt || {
+            echo "ERROR: Release APK does not contain an embedded JavaScript bundle."
+            exit 1
+          }
+
       - name: Collect APK
-        run: cp android/app/build/outputs/apk/debug/app-debug.apk Target-Sales-Test.apk
+        run: cp android/app/build/outputs/apk/release/app-release.apk Target-Sales.apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Target-Sales-Test-APK
-          path: Target-Sales-Test.apk
+          name: Target-Sales-Standalone-APK
+          path: Target-Sales.apk
           if-no-files-found: error
+          retention-days: 14
