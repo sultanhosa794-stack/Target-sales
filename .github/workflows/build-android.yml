@@ -7,10 +7,14 @@ on:
     paths:
       - "app/**"
       - "lib/**"
+      - "assets/**"
       - "package.json"
       - "app.json"
       - "eas.json"
       - ".github/workflows/build-android.yml"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -18,6 +22,7 @@ jobs:
     timeout-minutes: 35
     env:
       CI: true
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
 
@@ -67,3 +72,22 @@ jobs:
           path: Target-Sales.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish latest installable APK release
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./app.json').expo.version")
+          BUILD=$(node -p "require('./app.json').expo.android.versionCode")
+          TAG="v${VERSION}-b${BUILD}"
+          NOTES="Target & Sales ${VERSION} (build ${BUILD}) - APK جاهز للتحديث من داخل التطبيق."
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" Target-Sales.apk --clobber
+            gh release edit "$TAG" --title "Target & Sales ${VERSION}" --notes "$NOTES" --latest
+          else
+            gh release create "$TAG" Target-Sales.apk \
+              --target "${GITHUB_SHA}" \
+              --title "Target & Sales ${VERSION}" \
+              --notes "$NOTES" \
+              --latest
+          fi
