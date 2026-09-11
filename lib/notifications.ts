@@ -1,6 +1,8 @@
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
+import { api, getStoredProfile } from "./backend";
 
 const SHIFT_IDS_KEY = "target_sales_shift_notification_ids";
 
@@ -12,6 +14,37 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+function expoProjectId() {
+  const eas = (Constants.expoConfig?.extra as any)?.eas?.projectId;
+  return Constants.easConfig?.projectId ?? (typeof eas === "string" ? eas : undefined);
+}
+
+export async function registerRemotePushToken() {
+  const profile = await getStoredProfile();
+  if (!profile) return null;
+
+  const projectId = expoProjectId();
+  if (!projectId) return null;
+
+  const permission = await Notifications.getPermissionsAsync();
+  const finalPermission = permission.status === "granted" ? permission : await Notifications.requestPermissionsAsync();
+  if (finalPermission.status !== "granted") return null;
+
+  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  if (!token) return null;
+
+  await api("/rest/v1/rpc/register_my_push_token", {
+    method: "POST",
+    body: JSON.stringify({
+      p_expo_token: token,
+      p_platform: Platform.OS,
+      p_device_label: `${Platform.OS} Target & Sales`,
+    }),
+  });
+
+  return token;
+}
 
 export async function prepareNotifications() {
   const permission = await Notifications.getPermissionsAsync();
@@ -27,6 +60,7 @@ export async function prepareNotifications() {
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
     });
   }
+  try { await registerRemotePushToken(); } catch {}
 }
 
 export async function cancelShiftReminders() {
