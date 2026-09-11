@@ -82,3 +82,18 @@ export async function replaceDevice(employeeId: string, rawDevice: string) {
   if (error) throw error;
   return data;
 }
+
+export async function adminSetAssignment(employeeId:string, locationId:string, businessDate:string){
+  const {data,error}=await supabase.rpc('admin_set_assignment',{p_employee_id:employeeId,p_location_id:locationId,p_business_date:businessDate});
+  if(error) throw error; return data;
+}
+
+export async function adminMarkAbsent(employeeId:string,businessDate:string,reason?:string){
+  const {data,error}=await supabase.rpc('admin_mark_absent',{p_employee_id:employeeId,p_business_date:businessDate,p_reason:reason||null});
+  if(error) throw error; return data;
+}
+
+export async function adminClearAbsence(employeeId:string,businessDate:string){
+  const {data,error}=await supabase.rpc('admin_clear_absence',{p_employee_id:employeeId,p_business_date:businessDate});
+  if(error) throw error; return data;
+}
