@@ -1,17 +1,20 @@
- {
+{
   "name": "target-sales",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "expo": "~54.0.0",
+    "expo-location": "~19.0.7",
     "expo-router": "~6.0.0",
+    "expo-secure-store": "~15.0.7",
     "expo-status-bar": "~3.0.0",
     "react": "19.1.0",
     "react-native": "0.81.0",
