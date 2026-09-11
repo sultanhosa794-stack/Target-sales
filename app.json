@@ -7,7 +7,7 @@
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon.jpg",
     "extra": {
       "eas": {
         "projectId": "3d8e668e-2610-464e-a44b-ed642fca82c3"
@@ -17,7 +17,7 @@
       "package": "com.targetsales.app",
       "versionCode": 3,
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon.png",
+        "foregroundImage": "./assets/icon.jpg",
         "backgroundColor": "#FFFFFF"
       },
       "permissions": [
@@ -29,7 +29,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.targetsales.app",
-      "icon": "./assets/icon.png",
+      "icon": "./assets/icon.jpg",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "يستخدم الموقع للتحقق من بداية ونهاية الشفت في الموقع المعتمد."
       }
