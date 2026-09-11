@@ -74,29 +74,45 @@ export async function cancelShiftReminders() {
   }
 }
 
+function eveningReminderTimes(now: Date) {
+  const start = new Date(now);
+  if (now.getHours() < 2) start.setDate(start.getDate() - 1);
+  start.setHours(15, 0, 0, 0);
+
+  const end = new Date(start);
+  end.setDate(end.getDate() + 1);
+  end.setHours(2, 0, 0, 0);
+
+  const times: Date[] = [];
+  const first = [0, 5, 10, 15, 20, 30];
+  for (const minute of first) {
+    const t = new Date(start);
+    t.setMinutes(minute, 0, 0);
+    if (t > now && t <= end) times.push(t);
+  }
+
+  const cursor = new Date(start);
+  cursor.setMinutes(45, 0, 0);
+  while (cursor <= end) {
+    if (cursor > now) times.push(new Date(cursor));
+    cursor.setMinutes(cursor.getMinutes() + 15);
+  }
+
+  return times;
+}
+
 export async function scheduleEveningShiftReminders() {
   await prepareNotifications();
   await cancelShiftReminders();
 
   const now = new Date();
-  const times = [
-    [15, 0],
-    [15, 5],
-    [15, 10],
-    [15, 20],
-    [15, 30],
-    [16, 0],
-  ];
   const ids: string[] = [];
 
-  for (const [hour, minute] of times) {
-    const when = new Date(now);
-    when.setHours(hour, minute, 0, 0);
-    if (when.getTime() <= now.getTime()) continue;
+  for (const when of eveningReminderTimes(now)) {
     const id = await Notifications.scheduleNotificationAsync({
       content: {
         title: "حان وقت بداية الشفت",
-        body: "ابدأ الشفت من موقعك المعتمد أو سجّل الغياب لهذا اليوم.",
+        body: "ابدأ الشفت من موقعك المعتمد أو سجّل الغياب. سيتكرر التنبيه حتى تنفيذ أحد الخيارين.",
         sound: "default",
         data: { screen: "home", kind: "shift_reminder" },
       },
