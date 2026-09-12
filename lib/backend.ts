@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import * as Application from "expo-application";
 import { Platform } from "react-native";
 
 const SUPABASE_URL = "https://feeaekqyqtttpuajmcob.supabase.co";
@@ -6,6 +7,7 @@ const PUBLISHABLE_KEY = "sb_publishable__FeQluvb6h7pD0CejDlanQ__ZrAqQUl";
 const SESSION_KEY = "target_sales_session_v1";
 const PROFILE_KEY = "target_sales_profile_v1";
 const DEVICE_KEY = "target_sales_device_identity_v1";
+const STABLE_DEVICE_KEY = "target_sales_device_identity_v2";
 
 export type Session = { access_token:string; refresh_token:string; expires_at?:number };
 export type Profile = { id:string; full_name:string; username:string; role:"employee"|"manager"|"viewer"|"system_admin"|string };
@@ -13,20 +15,42 @@ export type Profile = { id:string; full_name:string; username:string; role:"empl
 async function readJson<T>(key:string):Promise<T|null>{const raw=await SecureStore.getItemAsync(key);if(!raw)return null;try{return JSON.parse(raw) as T}catch{return null}}
 async function writeJson(key:string,value:unknown){await SecureStore.setItemAsync(key,JSON.stringify(value))}
 
-export async function getDeviceIdentity(){
-  let id=await SecureStore.getItemAsync(DEVICE_KEY);
-  if(id)return id;
+function randomDeviceIdentity(){
   const bytes=Array.from({length:32},()=>Math.floor(Math.random()*256).toString(16).padStart(2,"0")).join("");
-  id=`ts-${Platform.OS}-${Date.now().toString(36)}-${bytes}`;
-  await SecureStore.setItemAsync(DEVICE_KEY,id,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
-  return id;
+  return `ts-${Platform.OS}-${Date.now().toString(36)}-${bytes}`;
+}
+
+async function getDeviceIdentities(){
+  const legacy_device_token=await SecureStore.getItemAsync(DEVICE_KEY);
+  let device_token=await SecureStore.getItemAsync(STABLE_DEVICE_KEY);
+
+  if(!device_token){
+    let hardwareId:string|null=null;
+    try{
+      if(Platform.OS==="android") hardwareId=Application.getAndroidId();
+      else if(Platform.OS==="ios") hardwareId=await Application.getIosIdForVendorAsync();
+    }catch{}
+
+    device_token=hardwareId ? `ts-${Platform.OS}-hw-${hardwareId}` : (legacy_device_token || randomDeviceIdentity());
+    await SecureStore.setItemAsync(STABLE_DEVICE_KEY,device_token,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
+  }
+
+  if(!legacy_device_token){
+    await SecureStore.setItemAsync(DEVICE_KEY,device_token,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY});
+  }
+
+  return {device_token,legacy_device_token:legacy_device_token || device_token};
+}
+
+export async function getDeviceIdentity(){
+  return (await getDeviceIdentities()).device_token;
 }
 
 async function loginBootstrap(username:string,password:string,action:"login"|"request_change"="login"){
-  const device_token=await getDeviceIdentity();
+  const {device_token,legacy_device_token}=await getDeviceIdentities();
   const response=await fetch(`${SUPABASE_URL}/functions/v1/login-bootstrap`,{
     method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({username:username.trim(),password,device_token,platform:Platform.OS,action})
+    body:JSON.stringify({username:username.trim(),password,device_token,legacy_device_token,platform:Platform.OS,action})
   });
   const payload=await response.json().catch(()=>({}));
   if(action==="request_change"){
