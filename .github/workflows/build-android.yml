@@ -64,8 +64,63 @@ jobs:
               p.write_text(s)
           PY
 
-      - name: Build standalone release APK
+      - name: Configure permanent Android release signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "ERROR: Missing required GitHub Actions secret: $name"
+              exit 1
+            fi
+          done
+
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/target-sales-release.jks
+          test -s android/app/target-sales-release.jks
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('android/app/build.gradle')
+          s = p.read_text()
+
+          debug_block = """        debug {\n            storeFile file('debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n"""
+          release_block = debug_block + """        release {\n            storeFile file('target-sales-release.jks')\n            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')\n            keyAlias System.getenv('ANDROID_KEY_ALIAS')\n            keyPassword System.getenv('ANDROID_KEY_PASSWORD')\n        }\n"""
+
+          if "storeFile file('target-sales-release.jks')" not in s:
+              if debug_block not in s:
+                  raise SystemExit('Expected Expo signingConfigs.debug block not found')
+              s = s.replace(debug_block, release_block, 1)
+
+          release_marker = "release {"
+          release_pos = s.find(release_marker, s.find('buildTypes'))
+          if release_pos == -1:
+              raise SystemExit('buildTypes.release block not found')
+
+          next_block = s.find('}', release_pos)
+          section = s[release_pos:next_block]
+          if 'signingConfig signingConfigs.debug' in section:
+              section = section.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release', 1)
+              s = s[:release_pos] + section + s[next_block:]
+          elif 'signingConfig signingConfigs.release' not in section:
+              insert_at = s.find('\n', release_pos) + 1
+              s = s[:insert_at] + '            signingConfig signingConfigs.release\n' + s[insert_at:]
+
+          p.write_text(s)
+          PY
+
+      - name: Build permanently signed standalone release APK
         working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           chmod +x gradlew
           ./gradlew clean assembleRelease --no-daemon --stacktrace
@@ -79,6 +134,11 @@ jobs:
             echo "ERROR: Release APK does not contain an embedded JavaScript bundle."
             exit 1
           }
+
+      - name: Verify APK signature
+        run: |
+          APK="android/app/build/outputs/apk/release/app-release.apk"
+          "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "$APK"
 
       - name: Collect APK
         run: cp android/app/build/outputs/apk/release/app-release.apk Target-Sales.apk
@@ -96,7 +156,7 @@ jobs:
           VERSION=$(node -p "require('./app.json').expo.version")
           BUILD=$(node -p "require('./app.json').expo.android.versionCode")
           TAG="v${VERSION}-b${BUILD}"
-          NOTES="Target & Sales ${VERSION} (build ${BUILD}) - APK جاهز للتحديث من داخل التطبيق."
+          NOTES="Target & Sales ${VERSION} (build ${BUILD}) - APK موقع بالمفتاح الدائم وجاهز للتحديث من داخل التطبيق."
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" Target-Sales.apk --clobber
