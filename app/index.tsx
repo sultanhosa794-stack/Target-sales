@@ -1,136 +1,24 @@
 import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Image,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ensureSession, getStoredProfile, login } from "../lib/backend";
+import { ensureSession, getStoredProfile, login, requestDeviceChange } from "../lib/backend";
 import { prepareNotifications } from "../lib/notifications";
 
-export default function LoginScreen() {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const profile = await getStoredProfile();
-        if (profile) {
-          await ensureSession();
-          try { await prepareNotifications(); } catch {}
-          if (mounted) router.replace("/home");
-          return;
-        }
-      } catch {
-        // A stale session is handled by showing the login screen.
-      }
-      if (mounted) setChecking(false);
-    })();
-    return () => { mounted = false; };
-  }, [router]);
-
-  const submit = async () => {
-    if (!username.trim() || !password) return;
-    setLoading(true);
-    setError("");
-    try {
-      await login(username, password);
-      try { await prepareNotifications(); } catch {}
-      router.replace("/home");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "تعذر تسجيل الدخول");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (checking) {
-    return (
-      <SafeAreaView style={[styles.page, styles.center]}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.checking}>جاري التحقق من الجلسة…</Text>
-      </SafeAreaView>
-    );
-  }
-
-  return (
-    <SafeAreaView style={styles.page}>
-      <View style={styles.topArea}>
-        <View style={styles.logoWrap}>
-          <Image source={require("../assets/icon.jpg")} style={styles.logoImage} resizeMode="contain" />
-        </View>
-        <Text style={styles.title}>Target & Sales</Text>
-        <Text style={styles.brand}>الوسام • الجنوبية</Text>
-        <Text style={styles.subtitle}>المبيعات • التارجت • الحضور</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>تسجيل الدخول</Text>
-        <Text style={styles.label}>اسم المستخدم</Text>
-        <TextInput
-          style={styles.input}
-          value={username}
-          onChangeText={setUsername}
-          placeholder="أدخل اسم المستخدم"
-          placeholderTextColor="#9AA5B4"
-          textAlign="right"
-          autoCapitalize="none"
-          editable={!loading}
-        />
-        <Text style={styles.label}>كلمة المرور</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          placeholder="أدخل كلمة المرور"
-          placeholderTextColor="#9AA5B4"
-          secureTextEntry
-          textAlign="right"
-          editable={!loading}
-          onSubmitEditing={submit}
-        />
-        {!!error && <Text style={styles.error}>{error}</Text>}
-        <TouchableOpacity
-          style={[styles.button, (!username.trim() || !password || loading) && styles.buttonDisabled]}
-          disabled={!username.trim() || !password || loading}
-          onPress={submit}
-        >
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>دخول</Text>}
-        </TouchableOpacity>
-      </View>
-      <Text style={styles.version}>Target & Sales • v1.1.2</Text>
-    </SafeAreaView>
-  );
+export default function LoginScreen(){
+ const router=useRouter();
+ const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[loading,setLoading]=useState(false),[checking,setChecking]=useState(true),[error,setError]=useState(""),[needsDeviceChange,setNeedsDeviceChange]=useState(false),[requestSent,setRequestSent]=useState(false);
+ useEffect(()=>{let mounted=true;(async()=>{try{const profile=await getStoredProfile();if(profile){await ensureSession();try{await prepareNotifications()}catch{}if(mounted)router.replace("/home");return}}catch{}if(mounted)setChecking(false)})();return()=>{mounted=false}},[router]);
+ const submit=async()=>{if(!username.trim()||!password)return;setLoading(true);setError("");setNeedsDeviceChange(false);setRequestSent(false);try{await login(username,password);try{await prepareNotifications()}catch{}router.replace("/home")}catch(e){const msg=e instanceof Error?e.message:"تعذر تسجيل الدخول";if(msg==="DEVICE_CHANGE_REQUIRED"){setNeedsDeviceChange(true);setError("هذا الحساب مرتبط بجهاز آخر") }else setError(msg)}finally{setLoading(false)}};
+ const sendChange=async()=>{setLoading(true);setError("");try{await requestDeviceChange(username,password);setRequestSent(true);setNeedsDeviceChange(false)}catch(e){setError(e instanceof Error?e.message:"تعذر إرسال الطلب")}finally{setLoading(false)}};
+ if(checking)return <SafeAreaView style={[s.page,s.center]}><ActivityIndicator size="large" color="#168CFF"/><Text style={s.muted}>جاري التحقق من الجلسة…</Text></SafeAreaView>;
+ return <SafeAreaView style={s.page}>
+  <View style={s.top}><View style={s.logoWrap}><Image source={require("../assets/icon.jpg")} style={s.logo}/></View><Text style={s.title}>مبيعات الجنوبية</Text><Text style={s.sub}>المبيعات • التارجت • الحضور</Text></View>
+  <View style={s.card}><Text style={s.cardTitle}>تسجيل الدخول</Text><Text style={s.label}>اسم المستخدم</Text><TextInput style={s.input} value={username} onChangeText={setUsername} placeholder="أدخل اسم المستخدم" placeholderTextColor="#718096" textAlign="right" autoCapitalize="none" editable={!loading}/><Text style={s.label}>كلمة المرور</Text><TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="أدخل كلمة المرور" placeholderTextColor="#718096" secureTextEntry textAlign="right" editable={!loading} onSubmitEditing={submit}/>
+  {!!error&&<Text style={s.error}>{error}</Text>}
+  {requestSent&&<View style={s.success}><Text style={s.successTitle}>تم إرسال طلب تغيير الجهاز ✓</Text><Text style={s.successText}>بانتظار موافقة الإدارة. بعد الموافقة سجّل الدخول من هذا الجهاز.</Text></View>}
+  <TouchableOpacity style={[s.primary,(!username.trim()||!password||loading)&&s.disabled]} disabled={!username.trim()||!password||loading} onPress={submit}>{loading?<ActivityIndicator color="#fff"/>:<Text style={s.primaryText}>دخول</Text>}</TouchableOpacity>
+  {needsDeviceChange&&<TouchableOpacity style={s.deviceBtn} disabled={loading} onPress={sendChange}><Text style={s.deviceText}>إرسال طلب تغيير الجهاز</Text><Text style={s.deviceHint}>لا تحتاج لكتابة نوع الجهاز أو اسمه</Text></TouchableOpacity>}
+  </View><Text style={s.version}>Target & Sales • v1.1.2</Text>
+ </SafeAreaView>
 }
-
-const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: "#F4F7FB", paddingHorizontal: 22 },
-  center: { alignItems: "center", justifyContent: "center" },
-  checking: { marginTop: 12, color: "#7A8798" },
-  topArea: { alignItems: "center", paddingTop: 48, paddingBottom: 28 },
-  logoWrap: { width: 104, height: 104, borderRadius: 30, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.08, shadowRadius: 14, elevation: 4 },
-  logoImage: { width: 94, height: 94, borderRadius: 24 },
-  title: { fontSize: 29, fontWeight: "900", color: "#102847" },
-  brand: { color: "#102847", marginTop: 6, fontSize: 16, fontWeight: "900" },
-  subtitle: { color: "#7A8798", marginTop: 6, fontSize: 13 },
-  card: { backgroundColor: "#FFFFFF", borderRadius: 28, padding: 22, shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 14, elevation: 3 },
-  cardTitle: { textAlign: "right", fontSize: 22, fontWeight: "900", color: "#17233C", marginBottom: 22 },
-  label: { textAlign: "right", color: "#526174", marginBottom: 8, fontSize: 14, fontWeight: "700" },
-  input: { backgroundColor: "#F5F7FA", borderWidth: 1, borderColor: "#E7EBF0", borderRadius: 16, paddingHorizontal: 16, paddingVertical: 15, fontSize: 16, color: "#17233C", marginBottom: 18 },
-  error: { color: "#B42318", textAlign: "right", marginBottom: 12, fontWeight: "700" },
-  button: { backgroundColor: "#16A77A", borderRadius: 17, paddingVertical: 17, marginTop: 4, minHeight: 54, justifyContent: "center" },
-  buttonDisabled: { opacity: 0.45 },
-  buttonText: { textAlign: "center", color: "#FFFFFF", fontWeight: "900", fontSize: 17 },
-  version: { textAlign: "center", marginTop: 22, color: "#A1AAB7", fontSize: 12 },
-});
+const s=StyleSheet.create({page:{flex:1,backgroundColor:"#061728",paddingHorizontal:22},center:{alignItems:"center",justifyContent:"center"},muted:{color:"#8EA3B7",marginTop:12},top:{alignItems:"center",paddingTop:52,paddingBottom:28},logoWrap:{width:92,height:92,borderRadius:28,backgroundColor:"#0B2239",borderWidth:1,borderColor:"#15466E",alignItems:"center",justifyContent:"center",marginBottom:14},logo:{width:80,height:80,borderRadius:22},title:{fontSize:28,fontWeight:"900",color:"#fff"},sub:{color:"#8EA3B7",marginTop:7},card:{backgroundColor:"#0B2239",borderWidth:1,borderColor:"#163B5B",borderRadius:24,padding:20},cardTitle:{fontSize:22,fontWeight:"900",color:"#fff",textAlign:"right",marginBottom:20},label:{color:"#B8C7D6",textAlign:"right",fontWeight:"800",marginBottom:8},input:{backgroundColor:"#081B2D",borderWidth:1,borderColor:"#183E5D",borderRadius:15,paddingHorizontal:15,paddingVertical:14,color:"#fff",marginBottom:16},error:{color:"#FF6B6B",textAlign:"right",fontWeight:"800",marginBottom:10},success:{backgroundColor:"#082D29",borderColor:"#0F8B67",borderWidth:1,borderRadius:14,padding:13,marginBottom:12},successTitle:{color:"#36D69E",fontWeight:"900",textAlign:"right"},successText:{color:"#A7DCCA",marginTop:5,textAlign:"right",lineHeight:20},primary:{backgroundColor:"#168CFF",borderRadius:16,paddingVertical:16,marginTop:4},primaryText:{color:"#fff",textAlign:"center",fontWeight:"900",fontSize:17},disabled:{opacity:.45},deviceBtn:{marginTop:12,borderWidth:1,borderColor:"#168CFF",borderRadius:16,paddingVertical:14},deviceText:{textAlign:"center",color:"#5CB0FF",fontWeight:"900"},deviceHint:{textAlign:"center",color:"#7890A5",fontSize:12,marginTop:5},version:{textAlign:"center",color:"#526A80",marginTop:20,fontSize:12}});
