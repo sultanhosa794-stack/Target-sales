@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "expo": "~54.0.0",
+    "expo-application": "~7.0.7",
     "expo-constants": "~18.0.14",
     "expo-file-system": "~19.0.24",
     "expo-intent-launcher": "~13.0.8",
