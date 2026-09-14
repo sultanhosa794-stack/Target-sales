@@ -20,7 +20,6 @@ function randomDeviceIdentity(){
 }
 
 export async function getDeviceIdentity(){
-  // Never replace an already registered token during logout/login.
   let id=await SecureStore.getItemAsync(DEVICE_KEY);
   if(id)return id;
 
@@ -67,7 +66,7 @@ export async function getStoredSession(){return readJson<Session>(SESSION_KEY)}
 async function refreshSession(session:Session):Promise<Session>{
  const response=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:session.refresh_token})});
  const payload=await response.json().catch(()=>({}));
- if(!response.ok||!payload?.access_token||!payload?.refresh_token){await logout();throw new Error("انتهت الجلسة، سجل الدخول من جديد")}
+ if(!response.ok||!payload?.access_token||!payload?.refresh_token){throw new Error("تعذر تحديث الاتصال الآن. حسابك ما زال مسجلًا، حاول مرة أخرى بعد قليل")}
  const refreshed:Session={access_token:payload.access_token,refresh_token:payload.refresh_token,expires_at:Math.floor(Date.now()/1000)+Number(payload.expires_in??3600)};await writeJson(SESSION_KEY,refreshed);return refreshed;
 }
 export async function ensureSession():Promise<Session>{let session=await getStoredSession();if(!session)throw new Error("يجب تسجيل الدخول");const now=Math.floor(Date.now()/1000);if(!session.expires_at||session.expires_at-now<90)session=await refreshSession(session);return session}
