@@ -3,7 +3,9 @@ name: Build Android Standalone APK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - update/admin-daily-sales-employees
     paths:
       - "app/**"
       - "lib/**"
@@ -25,28 +27,21 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
-
       - name: Install dependencies
         run: npm install
-
       - name: TypeScript check
         run: npm run typecheck
-
       - name: Validate Expo project
         run: npx expo config --type public > /dev/null
-
       - name: Generate clean Android project
         run: npx expo prebuild --platform android --clean --non-interactive
-
       - name: Prevent Android resource merger from treating Metro assets as resources
         shell: bash
         run: |
@@ -57,13 +52,11 @@ jobs:
           marker = 'androidResources {\n        ignoreAssetsPattern'
           if marker not in s:
               needle = 'android {\n'
-              replacement = '''android {\n    // Metro/Expo copies bundled JS assets here during release packaging.\n    // Do not let aapt2 interpret files such as assets_icon.png as Android resources.\n    androidResources {\n        ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"\n    }\n'''
-              if needle not in s:
-                  raise SystemExit('android block not found')
+              replacement = '''android {\n    androidResources {\n        ignoreAssetsPattern "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"\n    }\n'''
+              if needle not in s: raise SystemExit('android block not found')
               s = s.replace(needle, replacement, 1)
               p.write_text(s)
           PY
-
       - name: Configure permanent Android release signing
         shell: bash
         env:
@@ -73,48 +66,28 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-
           for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [ -z "${!name:-}" ]; then
-              echo "ERROR: Missing required GitHub Actions secret: $name"
-              exit 1
-            fi
+            if [ -z "${!name:-}" ]; then echo "ERROR: Missing required GitHub Actions secret: $name"; exit 1; fi
           done
-
           printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/target-sales-release.jks
           test -s android/app/target-sales-release.jks
-
           python3 - <<'PY'
           from pathlib import Path
-
-          p = Path('android/app/build.gradle')
-          s = p.read_text()
-
-          debug_block = """        debug {\n            storeFile file('debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n"""
-          release_block = debug_block + """        release {\n            storeFile file('target-sales-release.jks')\n            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')\n            keyAlias System.getenv('ANDROID_KEY_ALIAS')\n            keyPassword System.getenv('ANDROID_KEY_PASSWORD')\n        }\n"""
-
+          p=Path('android/app/build.gradle'); s=p.read_text()
+          debug="""        debug {\n            storeFile file('debug.keystore')\n            storePassword 'android'\n            keyAlias 'androiddebugkey'\n            keyPassword 'android'\n        }\n"""
+          release=debug+"""        release {\n            storeFile file('target-sales-release.jks')\n            storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')\n            keyAlias System.getenv('ANDROID_KEY_ALIAS')\n            keyPassword System.getenv('ANDROID_KEY_PASSWORD')\n        }\n"""
           if "storeFile file('target-sales-release.jks')" not in s:
-              if debug_block not in s:
-                  raise SystemExit('Expected Expo signingConfigs.debug block not found')
-              s = s.replace(debug_block, release_block, 1)
-
-          release_marker = "release {"
-          release_pos = s.find(release_marker, s.find('buildTypes'))
-          if release_pos == -1:
-              raise SystemExit('buildTypes.release block not found')
-
-          next_block = s.find('}', release_pos)
-          section = s[release_pos:next_block]
+              if debug not in s: raise SystemExit('Expected Expo signingConfigs.debug block not found')
+              s=s.replace(debug,release,1)
+          pos=s.find('release {',s.find('buildTypes'))
+          if pos==-1: raise SystemExit('buildTypes.release block not found')
+          end=s.find('}',pos); section=s[pos:end]
           if 'signingConfig signingConfigs.debug' in section:
-              section = section.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release', 1)
-              s = s[:release_pos] + section + s[next_block:]
+              section=section.replace('signingConfig signingConfigs.debug','signingConfig signingConfigs.release',1); s=s[:pos]+section+s[end:]
           elif 'signingConfig signingConfigs.release' not in section:
-              insert_at = s.find('\n', release_pos) + 1
-              s = s[:insert_at] + '            signingConfig signingConfigs.release\n' + s[insert_at:]
-
+              ins=s.find('\n',pos)+1; s=s[:ins]+'            signingConfig signingConfigs.release\n'+s[ins:]
           p.write_text(s)
           PY
-
       - name: Build permanently signed standalone release APK
         working-directory: android
         env:
@@ -124,47 +97,35 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew clean assembleRelease --no-daemon --stacktrace
-
       - name: Verify APK contains embedded JavaScript bundle
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
           test -f "$APK"
           unzip -l "$APK" | tee /tmp/apk-files.txt
-          grep -Eq "(assets/index.android.bundle|assets/.*\.bundle)" /tmp/apk-files.txt || {
-            echo "ERROR: Release APK does not contain an embedded JavaScript bundle."
-            exit 1
-          }
-
+          grep -Eq "(assets/index.android.bundle|assets/.*\.bundle)" /tmp/apk-files.txt || exit 1
       - name: Verify APK signature
         run: |
           APK="android/app/build/outputs/apk/release/app-release.apk"
           "$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)/apksigner" verify --verbose --print-certs "$APK"
-
       - name: Collect APK
         run: cp android/app/build/outputs/apk/release/app-release.apk Target-Sales.apk
-
       - uses: actions/upload-artifact@v4
         with:
           name: Target-Sales-Standalone-APK
           path: Target-Sales.apk
           if-no-files-found: error
           retention-days: 14
-
       - name: Publish latest installable APK release
+        if: github.ref == 'refs/heads/main'
         shell: bash
         run: |
           VERSION=$(node -p "require('./app.json').expo.version")
           BUILD=$(node -p "require('./app.json').expo.android.versionCode")
           TAG="v${VERSION}-b${BUILD}"
           NOTES="Target & Sales ${VERSION} (build ${BUILD}) - APK موقع بالمفتاح الدائم وجاهز للتحديث من داخل التطبيق."
-
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" Target-Sales.apk --clobber
             gh release edit "$TAG" --title "Target & Sales ${VERSION}" --notes "$NOTES" --latest
           else
-            gh release create "$TAG" Target-Sales.apk \
-              --target "${GITHUB_SHA}" \
-              --title "Target & Sales ${VERSION}" \
-              --notes "$NOTES" \
-              --latest
+            gh release create "$TAG" Target-Sales.apk --target "${GITHUB_SHA}" --title "Target & Sales ${VERSION}" --notes "$NOTES" --latest
           fi
