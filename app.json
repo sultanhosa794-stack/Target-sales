@@ -1,22 +1,19 @@
 {
   "expo": {
-    "name": "مبيعات الجنوبية",
+    "name": "Target & Sales",
     "slug": "target-sales",
-    "version": "2.0.0",
+    "version": "1.1.4",
     "orientation": "portrait",
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
+    "extra": {"eas": {"projectId": "3d8e668e-2610-464e-a44b-ed642fca82c3"}},
     "android": {
       "package": "com.targetsales.app",
-      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"]
+      "versionCode": 5,
+      "permissions": ["ACCESS_FINE_LOCATION","ACCESS_COARSE_LOCATION","POST_NOTIFICATIONS","REQUEST_INSTALL_PACKAGES"]
     },
-    "ios": {
-      "bundleIdentifier": "com.targetsales.app",
-      "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "يستخدم التطبيق موقعك للتحقق من بداية الشفت في موقع العمل المعتمد."
-      }
-    },
-    "plugins": ["expo-router", "expo-secure-store", "expo-location"]
+    "ios": {"bundleIdentifier": "com.targetsales.app","infoPlist": {"NSLocationWhenInUseUsageDescription": "يستخدم الموقع للتحقق من بداية ونهاية الشفت في الموقع المعتمد."}},
+    "plugins": ["expo-router","expo-secure-store",["expo-location",{"locationWhenInUsePermission":"السماح لتطبيق Target & Sales باستخدام موقعك للتحقق من بداية ونهاية الشفت."}],["expo-notifications",{"color":"#102847","defaultChannel":"target-sales-alerts"}]]
   }
 }

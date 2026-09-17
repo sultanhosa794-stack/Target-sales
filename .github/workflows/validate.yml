@@ -1,10 +1,9 @@
-name: Validate rebuild
+name: Validate Target Sales
 
 on:
   push:
-    branches: [rebuild-v2]
-  pull_request:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -16,11 +15,8 @@ jobs:
         with:
           node-version: 20
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: TypeScript
+        run: npm install
+      - name: TypeScript check
         run: npm run typecheck
-      - name: Expo config
-        env:
-          EXPO_PUBLIC_SUPABASE_URL: https://feeaekqyqtttpuajmcob.supabase.co
-          EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable__FeQluvb6h7pD0CejDlanQ__ZrAqQUl
+      - name: Validate Expo config
         run: npx expo config --type public > /dev/null
