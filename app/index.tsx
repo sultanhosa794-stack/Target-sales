@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ensureSession, getStoredProfile, login, requestDeviceChange } from "../lib/backend";
+import { login, requestDeviceChange } from "../lib/backend";
 
 export default function LoginScreen(){
  const router=useRouter();
- const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[loading,setLoading]=useState(false),[checking,setChecking]=useState(true),[error,setError]=useState(""),[needsDeviceChange,setNeedsDeviceChange]=useState(false),[requestSent,setRequestSent]=useState(false);
- useEffect(()=>{let mounted=true;(async()=>{try{const profile=await getStoredProfile();if(profile){await ensureSession();if(mounted)router.replace("/home");return}}catch{}if(mounted)setChecking(false)})();return()=>{mounted=false}},[router]);
+ const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[loading,setLoading]=useState(false),[error,setError]=useState(""),[needsDeviceChange,setNeedsDeviceChange]=useState(false),[requestSent,setRequestSent]=useState(false);
  const submit=async()=>{if(!username.trim()||!password)return;setLoading(true);setError("");setNeedsDeviceChange(false);setRequestSent(false);try{await login(username,password);router.replace("/home")}catch(e){const msg=e instanceof Error?e.message:"تعذر تسجيل الدخول";if(msg==="DEVICE_CHANGE_REQUIRED"){setNeedsDeviceChange(true);setError("هذا الحساب مرتبط بجهاز آخر") }else setError(msg)}finally{setLoading(false)}};
  const sendChange=async()=>{setLoading(true);setError("");try{await requestDeviceChange(username,password);setRequestSent(true);setNeedsDeviceChange(false)}catch(e){setError(e instanceof Error?e.message:"تعذر إرسال الطلب")}finally{setLoading(false)}};
- if(checking)return <SafeAreaView style={[s.page,s.center]}><ActivityIndicator size="large" color="#168CFF"/><Text style={s.muted}>جاري التحقق من الجلسة…</Text></SafeAreaView>;
  return <SafeAreaView style={s.page}>
   <View style={s.top}><View style={s.logoWrap}><Image source={require("../assets/icon.jpg")} style={s.logo}/></View><Text style={s.title}>مبيعات الجنوبية</Text><Text style={s.sub}>المبيعات • التارجت • الحضور</Text></View>
   <View style={s.card}><Text style={s.cardTitle}>تسجيل الدخول</Text><Text style={s.label}>اسم المستخدم</Text><TextInput style={s.input} value={username} onChangeText={setUsername} placeholder="أدخل اسم المستخدم" placeholderTextColor="#718096" textAlign="right" autoCapitalize="none" editable={!loading}/><Text style={s.label}>كلمة المرور</Text><TextInput style={s.input} value={password} onChangeText={setPassword} placeholder="أدخل كلمة المرور" placeholderTextColor="#718096" secureTextEntry textAlign="right" editable={!loading} onSubmitEditing={submit}/>
