@@ -86,3 +86,13 @@ export async function adminResetEmployeePassword(employeeId:string,password:stri
  if(!response.ok||!payload?.ok)throw new Error(payload?.message??"تعذر تغيير كلمة المرور");
  return payload as {ok:true};
 }
+
+
+export type DailySalesReportRow={employee_id:string;full_name:string;status:string;total_units:number};
+export type DailySalesReport={date:string;rows:DailySalesReportRow[];total_units:number};
+export async function fetchDailySalesReport(date:string):Promise<DailySalesReport>{
+ const session=await ensureSession();
+ const response=await fetch(`${SUPABASE_URL}/functions/v1/admin-daily-sales-report`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({date})});
+ if(response.status===401){await refreshSession(session);return fetchDailySalesReport(date)}
+ return parseResponse<DailySalesReport>(response);
+}
