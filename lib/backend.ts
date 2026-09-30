@@ -86,11 +86,6 @@ export async function adminCreateEmployee(fullName:string){
  return {ok:true as const,id,username,password};
 }
 
-export async function repairAbdullahAccount(password:string){
- if(!/^\\d{6}$/.test(password))throw new Error("كلمة المرور يجب أن تكون 6 أرقام");
- return api<boolean>("/rest/v1/rpc/repair_employee_legacy_login",{method:"POST",body:JSON.stringify({p_employee_id:"4086ff49-6db9-47da-918f-71f0cbc8a9c8",p_password:password})});
-}
-
 export type DailySalesReportRow={employee_id:string;full_name:string;status:string;total_units:number};
 export type DailySalesReport={date:string;rows:DailySalesReportRow[];total_units:number};
 export async function fetchDailySalesReport(date:string):Promise<DailySalesReport>{
