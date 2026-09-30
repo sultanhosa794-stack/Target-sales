@@ -58,7 +58,7 @@ async function loginBootstrap(username:string,password:string,action:"login"|"re
   return payload as {session:Session;profile:Profile};
 }
 
-export async function login(username:string,password:string){return loginBootstrap(username,password,"login")}
+export async function login(username:string,password:string){const result=await loginBootstrap(username,password,"login");return result.profile}
 export async function requestDeviceChange(username:string,password:string){return loginBootstrap(username,password,"request_change")}
 export async function getStoredProfile(){return readJson<Profile>(PROFILE_KEY)}
 export async function getStoredSession(){return readJson<Session>(SESSION_KEY)}
@@ -78,15 +78,6 @@ export async function logout(){await SecureStore.deleteItemAsync(SESSION_KEY);aw
 export function businessDate(date=new Date()){const shifted=new Date(date.getTime()-2*60*60*1000);const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(shifted);const get=(type:string)=>parts.find(p=>p.type===type)?.value??"";return`${get("year")}-${get("month")}-${get("day")}`}
 export function monthBounds(date=new Date()){const shifted=new Date(date.getTime()-2*60*60*1000);const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Riyadh",year:"numeric",month:"numeric"}).formatToParts(shifted);const year=Number(parts.find(p=>p.type==="year")?.value),month=Number(parts.find(p=>p.type==="month")?.value),days=new Date(Date.UTC(year,month,0)).getUTCDate(),mm=String(month).padStart(2,"0");return{year,month,days,start:`${year}-${mm}-01`,end:`${year}-${mm}-${String(days).padStart(2,"0")}`}}
 export function distanceMeters(lat1:number,lon1:number,lat2:number,lon2:number){const r=6371000,toRad=(v:number)=>(v*Math.PI)/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
-
-export async function adminResetEmployeePassword(employeeId:string,password:string){
- const session=await ensureSession();
- const response=await fetch(`${SUPABASE_URL}/functions/v1/admin-reset-employee-password`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({employee_id:employeeId,password})});
- const payload=await response.json().catch(()=>({}));
- if(!response.ok||!payload?.ok)throw new Error(payload?.message??"تعذر تغيير كلمة المرور");
- return payload as {ok:true};
-}
-
 
 export type DailySalesReportRow={employee_id:string;full_name:string;status:string;total_units:number};
 export type DailySalesReport={date:string;rows:DailySalesReportRow[];total_units:number};
