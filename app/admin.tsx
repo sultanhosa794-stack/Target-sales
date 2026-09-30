@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useMemo,useState} from "react";
 import {ActivityIndicator,Alert,Pressable,RefreshControl,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from "react-native";
 import {useRouter} from "expo-router";
-import {api,businessDate,fetchDailySalesReport,getStoredProfile,logout,Profile} from "../lib/backend";
+import {adminCreateEmployee,api,businessDate,fetchDailySalesReport,getStoredProfile,logout,Profile} from "../lib/backend";
 
 type Employee={id:string;full_name:string;username:string;active?:boolean};
 type Daily={employee_id:string;work_date?:string|null;shift_status?:string|null;assigned_location?:string|null;started_at?:string|null;ended_at?:string|null;total_units?:number|null;total_points?:number|null};
@@ -12,8 +12,6 @@ type Location={id:string;name:string;latitude:number;longitude:number;radius_m:n
 type Section="dashboard"|"employees"|"addEmployee"|"shift"|"daily"|"monthly"|"absence"|"devices"|"locations"|"updates";
 const moveDate=(v:string,d:number)=>{const x=new Date(`${v}T12:00:00`);x.setDate(x.getDate()+d);return x.toISOString().slice(0,10)};
 const month=(v:string)=>{const [y,m]=v.split("-").map(Number),days=new Date(Date.UTC(y,m,0)).getUTCDate(),mm=String(m).padStart(2,"0");return{y,m,start:`${y}-${mm}-01`,end:`${y}-${mm}-${String(days).padStart(2,"0")}`}};
-const makePassword=()=>{const chars="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#";let x="";for(let i=0;i<12;i++)x+=chars[Math.floor(Math.random()*chars.length)];return x};
-const makeUsername=(name:string)=>`emp_${name.trim().replace(/\s+/g,"_").replace(/[^\p{L}\p{N}_]/gu,"").slice(0,24)}_${Math.floor(100+Math.random()*900)}`;
 
 export default function Admin(){
  const router=useRouter();
@@ -33,7 +31,7 @@ export default function Admin(){
  const monthRows=(id:string)=>monthOps.filter(x=>x.employee_id===id);
  const setActive=(e:Employee,active:boolean)=>Alert.alert(active?"تنشيط الحساب":"إيقاف مؤقت",active?`إعادة تنشيط ${e.full_name}؟`:`إيقاف ${e.full_name} مؤقتًا؟`,[{text:"إلغاء",style:"cancel"},{text:active?"تنشيط":"إيقاف",onPress:async()=>{setBusy(e.id);try{await api("/rest/v1/rpc/admin_set_employee_active",{method:"POST",body:JSON.stringify({p_employee_id:e.id,p_active:active})});await load()}catch(x){Alert.alert("تعذر التنفيذ",x instanceof Error?x.message:"حاول مرة أخرى")}finally{setBusy(null)}}}]);
  const deleteEmployee=(e:Employee)=>Alert.alert("حذف الحساب نهائيًا",`سيتم حذف حساب ${e.full_name} من القوائم التشغيلية وتعطيل تسجيل دخوله. إذا عاد لاحقًا يجب إنشاء حساب جديد.`,[{text:"إلغاء",style:"cancel"},{text:"حذف نهائي",style:"destructive",onPress:async()=>{setBusy(e.id);try{await api("/rest/v1/rpc/admin_delete_employee",{method:"POST",body:JSON.stringify({p_employee_id:e.id})});await load()}catch(x){Alert.alert("تعذر الحذف",x instanceof Error?x.message:"حاول مرة أخرى")}finally{setBusy(null)}}}]);
- const createEmployee=async()=>{if(newName.trim().length<2)return Alert.alert("أدخل اسم الموظف");const username=makeUsername(newName),password=makePassword();setBusy("create");try{await api("/rest/v1/rpc/admin_create_employee",{method:"POST",body:JSON.stringify({p_full_name:newName.trim(),p_username:username,p_password:password})});setCreated({username,password});setNewName("");await load()}catch(e){Alert.alert("تعذر إنشاء الموظف",e instanceof Error?e.message:"حاول مرة أخرى")}finally{setBusy(null)}};
+ const createEmployee=async()=>{if(newName.trim().length<2)return Alert.alert("أدخل اسم الموظف");setBusy("create");try{const account=await adminCreateEmployee(newName);setCreated({username:account.username,password:account.password});setNewName("");await load()}catch(e){Alert.alert("تعذر إنشاء الموظف",e instanceof Error?e.message:"حاول مرة أخرى")}finally{setBusy(null)}};
  const markAbsent=(e:Employee)=>Alert.alert("تسجيل غياب",`تسجيل ${e.full_name} غائبًا في ${date}؟`,[{text:"إلغاء",style:"cancel"},{text:"غائب",style:"destructive",onPress:async()=>{setBusy(e.id);try{await api("/rest/v1/rpc/admin_mark_absent",{method:"POST",body:JSON.stringify({p_employee_id:e.id,p_business_date:date,p_reason:null})});await load()}finally{setBusy(null)}}}]);
  const review=async(r:Request,decision:"approved"|"rejected")=>{setBusy(r.id);try{await api("/rest/v1/rpc/admin_review_device_change_request",{method:"POST",body:JSON.stringify({p_request_id:r.id,p_decision:decision})});await load()}finally{setBusy(null)}};
  const addLocation=async()=>{const lat=Number(locLat),lng=Number(locLng);if(!locName.trim()||!Number.isFinite(lat)||!Number.isFinite(lng))return Alert.alert("بيانات الموقع غير مكتملة");setBusy("loc");try{await api("/rest/v1/rpc/admin_create_work_location",{method:"POST",body:JSON.stringify({p_name:locName.trim(),p_latitude:lat,p_longitude:lng,p_radius_m:50})});setLocName("");setLocLat("");setLocLng("");await load()}finally{setBusy(null)}};
