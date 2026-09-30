@@ -80,11 +80,10 @@ export function monthBounds(date=new Date()){const shifted=new Date(date.getTime
 export function distanceMeters(lat1:number,lon1:number,lat2:number,lon2:number){const r=6371000,toRad=(v:number)=>(v*Math.PI)/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
 
 export async function adminCreateEmployee(fullName:string){
- const session=await ensureSession();
- const response=await fetch(`${SUPABASE_URL}/functions/v1/admin-create-employee`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({full_name:fullName.trim()})});
- const payload=await response.json().catch(()=>({}));
- if(!response.ok||!payload?.ok)throw new Error(payload?.message==="invalid_name"?"أدخل اسم الموظف بشكل صحيح":payload?.message==="not_allowed"?"ليس لديك صلاحية لإضافة موظف":"تعذر إنشاء الموظف");
- return payload as {ok:true;id:string;username:string;password:string};
+ const username=`emp_${Date.now().toString(36)}_${Math.floor(100+Math.random()*900)}`;
+ const password=String(Math.floor(100000+Math.random()*900000));
+ const id=await api<string>("/rest/v1/rpc/admin_create_employee",{method:"POST",body:JSON.stringify({p_full_name:fullName.trim(),p_username:username,p_password:password})});
+ return {ok:true as const,id,username,password};
 }
 
 export async function repairAbdullahAccount(password:string){
