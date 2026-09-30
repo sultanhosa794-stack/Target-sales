@@ -2,7 +2,6 @@ import {useCallback,useEffect,useMemo,useState} from "react";
 import {ActivityIndicator,Alert,Pressable,RefreshControl,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from "react-native";
 import {useRouter} from "expo-router";
 import {adminResetEmployeePassword,api,businessDate,fetchDailySalesReport,getStoredProfile,logout,Profile} from "../lib/backend";
-import {checkForAppUpdate} from "../lib/updater";
 
 type Employee={id:string;full_name:string;username:string;active?:boolean};
 type Daily={employee_id:string;work_date?:string|null;shift_status?:string|null;assigned_location?:string|null;started_at?:string|null;ended_at?:string|null;total_units?:number|null;total_points?:number|null};
@@ -24,7 +23,7 @@ export default function Admin(){
  const [newName,setNewName]=useState(""),[created,setCreated]=useState<{username:string,password:string}|null>(null),[locName,setLocName]=useState(""),[locLat,setLocLat]=useState(""),[locLng,setLocLng]=useState("");
  const load=useCallback(async()=>{try{const p=await getStoredProfile();if(!p)return router.replace("/");if(!["system_admin","manager","viewer"].includes(p.role))return router.replace("/home");setMe(p);const mo=month(date);const [people,ops,mops,months,devs,reqs,locs]=await Promise.all([
   api<Employee[]>("/rest/v1/profiles?select=id,full_name,username,active&role=eq.employee&order=active.desc,full_name.asc"),api<Daily[]>(`/rest/v1/daily_operations?select=*&work_date=eq.${date}`),api<Daily[]>(`/rest/v1/daily_operations?select=employee_id,work_date,shift_status,total_units,total_points&work_date=gte.${mo.start}&work_date=lte.${mo.end}`),api<Monthly[]>(`/rest/v1/monthly_performance?select=employee_id,attended_days,total_points,eligible_target_points&year=eq.${mo.y}&month=eq.${mo.m}`),api<Device[]>("/rest/v1/device_bindings?select=id,employee_id,device_token,active&order=bound_at.desc"),api<Request[]>("/rest/v1/device_change_requests?select=id,employee_id,status,requested_at&status=eq.pending&order=requested_at.desc"),api<Location[]>("/rest/v1/work_locations?select=id,name,latitude,longitude,radius_m,active&order=name.asc")]);
-  setEmployees(people??[]);setDaily(ops??[]);setMonthOps(mops??[]);setMonthly(months??[]);setDevices(devs??[]);setRequests(reqs??[]);setLocations(locs??[]);try{setUpdateAvailable((await checkForAppUpdate()).available)}catch{setUpdateAvailable(false)}}catch(e){Alert.alert("تعذر التحميل",e instanceof Error?e.message:"حاول مرة أخرى")}finally{setLoading(false);setRefreshing(false)}},[router,date]);
+  setEmployees(people??[]);setDaily(ops??[]);setMonthOps(mops??[]);setMonthly(months??[]);setDevices(devs??[]);setRequests(reqs??[]);setLocations(locs??[]);setUpdateAvailable(false)}catch(e){Alert.alert("تعذر التحميل",e instanceof Error?e.message:"حاول مرة أخرى")}finally{setLoading(false);setRefreshing(false)}},[router,date]);
  useEffect(()=>{setLoading(true);load()},[load]);
  const dm=useMemo(()=>new Map(daily.map(x=>[x.employee_id,x])),[daily]),mm=useMemo(()=>new Map(monthly.map(x=>[x.employee_id,x])),[monthly]);
  const filtered=employees.filter(e=>`${e.full_name} ${e.username} ${dm.get(e.id)?.assigned_location??""}`.toLowerCase().includes(search.toLowerCase().trim()));
