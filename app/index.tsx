@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, Image, SafeAreaView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ensureSession, getStoredProfile, login, requestDeviceChange } from "../lib/backend";
+import { getStoredProfile, getStoredSession, login, requestDeviceChange } from "../lib/backend";
 
 export default function LoginScreen(){
  const router=useRouter();
  const [username,setUsername]=useState(""),[password,setPassword]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[needsDeviceChange,setNeedsDeviceChange]=useState(false),[requestSent,setRequestSent]=useState(false);
- useEffect(()=>{let alive=true;(async()=>{try{const profile=await getStoredProfile();if(!profile)return;if(!alive)return;try{await ensureSession()}catch{return}if(!alive)return;router.replace(["system_admin","manager","viewer"].includes(profile.role)?"/admin":"/home")}finally{if(alive)setLoading(false)}})();return()=>{alive=false}},[router]);
+ useEffect(()=>{let alive=true;(async()=>{try{const [profile,session]=await Promise.all([getStoredProfile(),getStoredSession()]);if(!alive)return;if(profile&&session?.refresh_token){router.replace(["system_admin","manager","viewer"].includes(profile.role)?"/admin":"/home");return}}finally{if(alive)setLoading(false)}})();return()=>{alive=false}},[router]);
  const submit=async()=>{if(!username.trim()||!password)return;setLoading(true);setError("");setNeedsDeviceChange(false);setRequestSent(false);try{const profile=await login(username,password);router.replace(["system_admin","manager","viewer"].includes(profile.role)?"/admin":"/home")}catch(e){const msg=e instanceof Error?e.message:"تعذر تسجيل الدخول";if(msg==="DEVICE_CHANGE_REQUIRED"){setNeedsDeviceChange(true);setError("هذا الحساب مرتبط بجهاز آخر") }else setError(msg)}finally{setLoading(false)}};
  const sendChange=async()=>{setLoading(true);setError("");try{await requestDeviceChange(username,password);setRequestSent(true);setNeedsDeviceChange(false)}catch(e){setError(e instanceof Error?e.message:"تعذر إرسال الطلب")}finally{setLoading(false)}};
  return <SafeAreaView style={s.page}>
