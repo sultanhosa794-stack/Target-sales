@@ -2,7 +2,7 @@ name: Validate Target Sales
 
 on:
   push:
-    branches: [main, fix/profiles-1101-20261016]
+    branches: [main, fix/profiles-1101-20261016, 'feature/v1.3.9-b25-stability-performance']
   workflow_dispatch:
 
 jobs:
