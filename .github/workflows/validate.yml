@@ -2,7 +2,7 @@ name: Validate Target Sales
 
 on:
   push:
-    branches: [main]
+    branches: [main, fix/profiles-1101-20261016]
   workflow_dispatch:
 
 jobs:

@@ -31,7 +31,7 @@ export default function Admin(){
    const mo=month(date);
    // Load only the active screen. An unrelated API failure must not block daily sales.
    const tasks:{label:string;run:()=>Promise<unknown>;apply:(value:any)=>void}[]=[
-    {label:"قائمة الموظفين",run:()=>api<Employee[]>("/rest/v1/profiles?select=id,full_name,username,active&role=eq.employee&username=not.like.deleted_%&order=active.desc,full_name.asc"),apply:v=>setEmployees(v??[])}
+    {label:"قائمة الموظفين",run:()=>api<Employee[]>("/rest/v1/profiles?select=id,full_name,username,active&role=eq.employee&order=active.desc,full_name.asc").then(rows=>(rows??[]).filter(e=>!e.username?.startsWith("deleted_"))),apply:v=>setEmployees(v??[])}
    ];
    if(["shift","daily","dashboard","absence"].includes(section))tasks.push({label:"الشفت والمبيعات اليومية",run:()=>api<Daily[]>(`/rest/v1/daily_operations?select=*&work_date=eq.${date}`),apply:v=>setDaily(v??[])});
    if(section==="monthly")tasks.push({label:"تفاصيل الشهر",run:()=>api<Daily[]>(`/rest/v1/daily_operations?select=employee_id,work_date,shift_status,total_units,total_points&work_date=gte.${mo.start}&work_date=lte.${mo.end}`),apply:v=>setMonthOps(v??[])});
