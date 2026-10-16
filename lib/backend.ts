@@ -58,7 +58,7 @@ async function loginBootstrap(username:string,password:string,action:"login"|"re
   return payload as {session:Session;profile:Profile};
 }
 
-export async function login(username:string,password:string){return loginBootstrap(username,password,"login")}
+export async function login(username:string,password:string){const result=await loginBootstrap(username,password,"login");return result.profile}
 export async function requestDeviceChange(username:string,password:string){return loginBootstrap(username,password,"request_change")}
 export async function getStoredProfile(){return readJson<Profile>(PROFILE_KEY)}
 export async function getStoredSession(){return readJson<Session>(SESSION_KEY)}
@@ -78,3 +78,19 @@ export async function logout(){await SecureStore.deleteItemAsync(SESSION_KEY);aw
 export function businessDate(date=new Date()){const shifted=new Date(date.getTime()-2*60*60*1000);const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(shifted);const get=(type:string)=>parts.find(p=>p.type===type)?.value??"";return`${get("year")}-${get("month")}-${get("day")}`}
 export function monthBounds(date=new Date()){const shifted=new Date(date.getTime()-2*60*60*1000);const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Riyadh",year:"numeric",month:"numeric"}).formatToParts(shifted);const year=Number(parts.find(p=>p.type==="year")?.value),month=Number(parts.find(p=>p.type==="month")?.value),days=new Date(Date.UTC(year,month,0)).getUTCDate(),mm=String(month).padStart(2,"0");return{year,month,days,start:`${year}-${mm}-01`,end:`${year}-${mm}-${String(days).padStart(2,"0")}`}}
 export function distanceMeters(lat1:number,lon1:number,lat2:number,lon2:number){const r=6371000,toRad=(v:number)=>(v*Math.PI)/180,dLat=toRad(lat2-lat1),dLon=toRad(lon2-lon1),a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;return 2*r*Math.atan2(Math.sqrt(a),Math.sqrt(1-a))}
+
+export async function adminCreateEmployee(fullName:string){
+ const username=`emp_${Date.now().toString(36)}_${Math.floor(100+Math.random()*900)}`;
+ const password=String(Math.floor(100000+Math.random()*900000));
+ const id=await api<string>("/rest/v1/rpc/admin_create_employee",{method:"POST",body:JSON.stringify({p_full_name:fullName.trim(),p_username:username,p_password:password})});
+ return {ok:true as const,id,username,password};
+}
+
+export type DailySalesReportRow={employee_id:string;full_name:string;status:string;total_units:number};
+export type DailySalesReport={date:string;rows:DailySalesReportRow[];total_units:number};
+export async function fetchDailySalesReport(date:string):Promise<DailySalesReport>{
+ const session=await ensureSession();
+ let response=await fetch(`${SUPABASE_URL}/functions/v1/admin-daily-sales-report`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({date})});
+ if(response.status===401){const latest=await refreshSession(session);response=await fetch(`${SUPABASE_URL}/functions/v1/admin-daily-sales-report`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${latest.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({date})})}
+ return parseResponse<DailySalesReport>(response);
+}

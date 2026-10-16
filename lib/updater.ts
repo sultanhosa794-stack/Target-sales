@@ -18,7 +18,7 @@ export type UpdateInfo = {
   available: boolean;
 };
 
-const RELEASE_API = "https://api.github.com/repos/sultanhosa794-stack/Target-sales/releases/latest";
+const RELEASE_API = "https://api.github.com/repos/sultanhosa794-stack/Target-sales/releases";
 
 function num(v: unknown, fallback = 0) {
   const n = Number(v);
@@ -36,7 +36,10 @@ async function getReleaseInfo(currentVersion: string, currentBuild: number): Pro
       headers: { Accept: "application/vnd.github+json", "User-Agent": "Target-Sales-App" },
     });
     if (!res.ok) return null;
-    const release = (await res.json()) as GitHubRelease;
+    const payload = await res.json();
+    const releases = (Array.isArray(payload) ? payload : [payload]) as GitHubRelease[];
+    const release = releases.map(r=>({r,p:parseTag(r.tag_name)})).filter(x=>x.p).sort((a,b)=>(b.p?.build??0)-(a.p?.build??0))[0]?.r;
+    if (!release) return null;
     const parsed = parseTag(release.tag_name);
     if (!parsed) return null;
     const asset = release.assets?.find((a) => a.name === "Target-Sales.apk") ?? release.assets?.find((a) => a.name?.endsWith(".apk"));

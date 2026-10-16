@@ -2,7 +2,9 @@ name: Validate Target Sales
 
 on:
   push:
-    branches: [main]
+    branches: [main, rebuild-v2]
+  pull_request:
+    branches: [rebuild-v2]
   workflow_dispatch:
 
 jobs:
@@ -16,6 +18,8 @@ jobs:
           node-version: 20
       - name: Install dependencies
         run: npm install
+      - name: Regression tests
+        run: npm test
       - name: TypeScript check
         run: npm run typecheck
       - name: Validate Expo config

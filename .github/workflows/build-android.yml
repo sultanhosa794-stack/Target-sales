@@ -1,6 +1,8 @@
 name: Build Android Standalone APK
 
 on:
+  pull_request:
+    branches: [rebuild-v2]
   workflow_dispatch:
   push:
     branches:
