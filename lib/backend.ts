@@ -63,7 +63,13 @@ export async function requestDeviceChange(username:string,password:string){retur
 export async function getStoredProfile(){return readJson<Profile>(PROFILE_KEY)}
 export async function getStoredSession(){return readJson<Session>(SESSION_KEY)}
 
+let refreshInFlight:Promise<Session>|null=null;
 async function refreshSession(session:Session):Promise<Session>{
+ if(refreshInFlight)return refreshInFlight;
+ refreshInFlight=performRefresh(session);
+ try{return await refreshInFlight}finally{refreshInFlight=null}
+}
+async function performRefresh(session:Session):Promise<Session>{
  const response=await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,"Content-Type":"application/json"},body:JSON.stringify({refresh_token:session.refresh_token})});
  const payload=await response.json().catch(()=>({}));
  if(!response.ok||!payload?.access_token||!payload?.refresh_token){throw new Error("تعذر تحديث الاتصال الآن. حسابك ما زال مسجلًا، حاول مرة أخرى بعد قليل")}
@@ -72,7 +78,7 @@ async function refreshSession(session:Session):Promise<Session>{
 export async function ensureSession():Promise<Session>{let session=await getStoredSession();if(!session)throw new Error("يجب تسجيل الدخول");const now=Math.floor(Date.now()/1000);if(!session.expires_at||session.expires_at-now<90)session=await refreshSession(session);return session}
 
 function friendlyApiError(raw:string){let message=raw;try{message=JSON.parse(raw)?.message??raw}catch{}if(message.includes("outside_location:")){const match=message.match(/outside_location:([0-9.]+):([0-9.]+)/);if(match)return `أنت خارج نطاق الموقع المعتمد. المسافة الحالية ${match[1]} م، والمسموح ${match[2]} م.`;return "أنت خارج نطاق الموقع المعتمد."}const map:Record<string,string>={shift_already_ended:"تم إنهاء شفت اليوم مسبقًا.",no_open_shift:"لا يوجد شفت مفتوح لإنهائه.",shift_must_be_ended:"يجب إنهاء الشفت قبل تسجيل المبيعات.",revision_limit_reached:"تم استخدام التعديل المسموح لهذا اليوم ولا يمكن التعديل مرة أخرى.",sales_already_approved:"تم اعتماد مبيعات اليوم ولا يمكن تعديلها.",total_over_100:"إجمالي الشرائح لا يمكن أن يتجاوز 100.",invalid_quantity:"عدد الشرائح غير صحيح.",shift_already_started:"لا يمكن تسجيل الغياب بعد بدء الشفت.",no_location:"لم يتم العثور على موقع عمل معتمد.",no_region:"الحساب غير مربوط بالمنطقة.",not_allowed:"ليس لديك صلاحية لتنفيذ هذه العملية."};const key=Object.keys(map).find(k=>message.includes(k));return key?map[key]:(message&&message.length<220?message:"تعذر تنفيذ العملية؛ تحقق من الاتصال وحاول مرة أخرى")}
-async function parseResponse<T>(response:Response):Promise<T>{if(!response.ok){const raw=await response.text().catch(()=>"");console.warn("API error",response.status,raw);throw new Error(`HTTP ${response.status}: ${friendlyApiError(raw)}`)}if(response.status===204)return null as T;const text=await response.text();return(text?JSON.parse(text):null) as T}
+async function parseResponse<T>(response:Response):Promise<T>{if(!response.ok){const raw=await response.text().catch(()=>"");console.warn("API error",response.status);throw new Error(`HTTP ${response.status}: ${friendlyApiError(raw)}`)}if(response.status===204)return null as T;const text=await response.text();return(text?JSON.parse(text):null) as T}
 export async function api<T=unknown>(path:string,init:RequestInit={},prefer?:string):Promise<T>{const session=await ensureSession();const headers=new Headers(init.headers??{});headers.set("apikey",PUBLISHABLE_KEY);headers.set("Authorization",`Bearer ${session.access_token}`);if(!headers.has("Content-Type")&&init.body)headers.set("Content-Type","application/json");if(prefer)headers.set("Prefer",prefer);let response=await fetch(`${SUPABASE_URL}${path}`,{...init,headers});if(response.status===401){const latest=await refreshSession(session);headers.set("Authorization",`Bearer ${latest.access_token}`);response=await fetch(`${SUPABASE_URL}${path}`,{...init,headers})}return parseResponse<T>(response)}
 export async function logout(){await SecureStore.deleteItemAsync(SESSION_KEY);await SecureStore.deleteItemAsync(PROFILE_KEY)}
 export function businessDate(date=new Date()){const shifted=new Date(date.getTime()-2*60*60*1000);const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Riyadh",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(shifted);const get=(type:string)=>parts.find(p=>p.type===type)?.value??"";return`${get("year")}-${get("month")}-${get("day")}`}
@@ -81,7 +87,8 @@ export function distanceMeters(lat1:number,lon1:number,lat2:number,lon2:number){
 
 export async function adminCreateEmployee(fullName:string){
  const username=`emp_${Date.now().toString(36)}_${Math.floor(100+Math.random()*900)}`;
- const password=String(Math.floor(100000+Math.random()*900000));
+ // The production admin_create_employee RPC requires a password of at least 8 characters.
+ const password=String(Math.floor(10000000+Math.random()*90000000));
  const id=await api<string>("/rest/v1/rpc/admin_create_employee",{method:"POST",body:JSON.stringify({p_full_name:fullName.trim(),p_username:username,p_password:password})});
  return {ok:true as const,id,username,password};
 }
@@ -91,6 +98,6 @@ export type DailySalesReport={date:string;rows:DailySalesReportRow[];total_units
 export async function fetchDailySalesReport(date:string):Promise<DailySalesReport>{
  const session=await ensureSession();
  const response=await fetch(`${SUPABASE_URL}/functions/v1/admin-daily-sales-report`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${session.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({date})});
- if(response.status===401){await refreshSession(session);return fetchDailySalesReport(date)}
+ if(response.status===401){const refreshed=await refreshSession(session);const retry=await fetch(`${SUPABASE_URL}/functions/v1/admin-daily-sales-report`,{method:"POST",headers:{apikey:PUBLISHABLE_KEY,Authorization:`Bearer ${refreshed.access_token}`,"Content-Type":"application/json"},body:JSON.stringify({date})});return parseResponse<DailySalesReport>(retry)}
  return parseResponse<DailySalesReport>(response);
 }
