@@ -8,8 +8,7 @@ const headers = {
   "Content-Type": "application/json; charset=utf-8",
 };
 
-// Username-to-email resolution exposed account existence before authentication.
-// Current app versions use login-bootstrap, so retire this legacy endpoint.
+// The current app uses login-bootstrap. Retire the legacy resolver that exposed account existence.
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
   if (req.method !== "POST") {
