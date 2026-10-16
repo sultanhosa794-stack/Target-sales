@@ -87,7 +87,8 @@ export function distanceMeters(lat1:number,lon1:number,lat2:number,lon2:number){
 
 export async function adminCreateEmployee(fullName:string){
  const username=`emp_${Date.now().toString(36)}_${Math.floor(100+Math.random()*900)}`;
- const password=String(Math.floor(100000+Math.random()*900000));
+ // The production admin_create_employee RPC requires a password of at least 8 characters.
+ const password=String(Math.floor(10000000+Math.random()*90000000));
  const id=await api<string>("/rest/v1/rpc/admin_create_employee",{method:"POST",body:JSON.stringify({p_full_name:fullName.trim(),p_username:username,p_password:password})});
  return {ok:true as const,id,username,password};
 }
