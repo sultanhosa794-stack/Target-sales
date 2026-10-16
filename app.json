@@ -28,6 +28,11 @@
         "NSLocationWhenInUseUsageDescription": "يستخدم الموقع للتحقق من بداية ونهاية الشفت في الموقع المعتمد."
       }
     },
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/icon.jpg"
+    },
     "plugins": [
       "expo-router",
       "expo-secure-store",
