@@ -1,6 +1,6 @@
 {
   "name": "target-sales",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "private": true,
   "main": "expo-router/entry",
   "scripts": {
