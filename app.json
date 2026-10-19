@@ -2,7 +2,7 @@
   "expo": {
     "name": "Target & Sales",
     "slug": "target-sales",
-    "version": "1.4.3",
+    "version": "1.4.4",
     "orientation": "portrait",
     "scheme": "targetsales",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "android": {
       "package": "com.targetsales.app",
-      "versionCode": 29,
+      "versionCode": 30,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
