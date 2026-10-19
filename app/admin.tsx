@@ -2,6 +2,7 @@ import {useCallback,useEffect,useMemo,useState} from "react";
 import {ActivityIndicator,Alert,Pressable,RefreshControl,SafeAreaView,ScrollView,StyleSheet,Text,TextInput,View} from "react-native";
 import {useRouter} from "expo-router";
 import {adminCreateEmployee,api,businessDate,fetchDailySalesReport,getStoredProfile,logout,Profile} from "../lib/backend";
+import {prepareNotifications} from "../lib/notifications";
 
 type Employee={id:string;full_name:string;username:string;active?:boolean};
 type Daily={employee_id:string;work_date?:string|null;shift_status?:string|null;assigned_location?:string|null;start_location_name?:string|null;started_at?:string|null;ended_at?:string|null;total_units?:number|null;total_points?:number|null};
@@ -60,6 +61,7 @@ export default function Admin(){
   finally{setLoading(false);setRefreshing(false)}
  },[router,date,section]);
  useEffect(()=>{setLoading(true);load()},[load]);
+ useEffect(()=>{prepareNotifications().catch(error=>console.warn("Push notification setup failed",error instanceof Error?error.message:"unknown error"))},[]);
  useEffect(()=>{if(section!=="hotels"||!hotelMonthly)return;let active=true;const mo=month(date);api<HotelActivation[]>(`/rest/v1/hotel_activations?select=id,employee_id,hotel_location_id,business_date,activation_count,hotel_location:work_locations!hotel_activations_hotel_location_id_fkey(name)&business_date=gte.${mo.start}&business_date=lte.${mo.end}&order=business_date.desc`).then(rows=>{if(active)setMonthlyHotels(rows??[])}).catch(e=>{if(active)Alert.alert("تعذر تحميل المبيعات الشهرية",e instanceof Error?e.message:"حاول مرة أخرى")});return()=>{active=false}},[section,hotelMonthly,date]);
  const dm=useMemo(()=>new Map(daily.map(x=>[x.employee_id,x])),[daily]),mm=useMemo(()=>new Map(monthly.map(x=>[x.employee_id,x])),[monthly]);
  const filtered=employees.filter(e=>`${e.full_name} ${e.username} ${dm.get(e.id)?.assigned_location??""}`.toLowerCase().includes(search.toLowerCase().trim()));
