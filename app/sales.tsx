@@ -68,6 +68,7 @@ export default function SalesScreen() {
   const locked = daily.sales_status === "approved" || Number(daily.revision_count ?? 0) >= 1;
 
   const submit = async () => {
+    if (saving) return;
     if (daily.shift_status !== "ended") return Alert.alert("أكمل الشفت أولًا", "تسجيل المبيعات متاح بعد إنهاء الشفت.");
     if (invalid) return Alert.alert("راجع الأعداد", "كل باقة من 0 إلى 100، وإجمالي الشرائح لا يتجاوز 100.");
     if (locked) return Alert.alert("المبيعات مقفلة", "تم استهلاك التعديل المسموح أو اعتماد المبيعات.");

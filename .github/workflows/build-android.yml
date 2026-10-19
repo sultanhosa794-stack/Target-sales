@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - fix/target-sales-1.4.1
       - update/admin-daily-sales-employees
       - release/1.4.0-region-account-fixes
     paths:
