@@ -20,7 +20,8 @@
         "ACCESS_COARSE_LOCATION",
         "POST_NOTIFICATIONS",
         "REQUEST_INSTALL_PACKAGES"
-      ]
+      ],
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "bundleIdentifier": "com.targetsales.app",
