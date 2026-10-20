@@ -42,6 +42,25 @@ jobs:
         run: npm run typecheck
       - name: Validate Expo project
         run: npx expo config --type public > /dev/null
+      - name: Configure Firebase for Android push notifications
+        shell: bash
+        env:
+          GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GOOGLE_SERVICES_JSON_BASE64:-}" ]; then
+            echo "Missing GOOGLE_SERVICES_JSON_BASE64 GitHub Actions secret"
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > google-services.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('google-services.json'))
+          packages=[c.get('client_info',{}).get('android_client_info',{}).get('package_name') for c in data.get('client',[])]
+          if 'com.targetsales.app' not in packages:
+              raise SystemExit('Firebase Android package mismatch')
+          print('Firebase Android configuration validated')
+          PY
       - name: Generate clean Android project
         run: npx expo prebuild --platform android --clean --non-interactive
       - name: Prevent Android resource merger from treating Metro assets as resources
