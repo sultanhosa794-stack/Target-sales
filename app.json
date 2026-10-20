@@ -44,6 +44,10 @@
           "defaultChannel": "target-sales-alerts"
         }
       ]
+    ],
+    "platforms": [
+      "android",
+      "ios"
     ]
   }
 }
